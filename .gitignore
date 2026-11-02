@@ -1,0 +1,12 @@
+# colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+
+# 学習済みモデル・録画
+*.pt
+*.mp4

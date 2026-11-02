@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!--
+  差動二輪ロボット + 前方カメラ
+  初級サンプル「ROS2とGazeboの連携によるロボット操作」と同じく、
+  SDFに DiffDrive プラグインで「動力」を付け、ROS2 から /cmd_vel で操作する。
+  追加点: 前方カメラ（AIによる人物検出用）
+-->
+<sdf version="1.9">
+  <model name="pai_robot">
+    <pose>0 0 0 0 0 0</pose>
+
+    <!-- 車体 -->
+    <link name="chassis">
+      <pose>0 0 0.1 0 0 0</pose>
+      <inertial>
+        <mass>2.0</mass>
+        <inertia>
+          <ixx>0.02</ixx><iyy>0.03</iyy><izz>0.04</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <visual name="chassis_visual">
+        <geometry><box><size>0.4 0.3 0.1</size></box></geometry>
+        <material>
+          <ambient>0.1 0.3 0.8 1</ambient>
+          <diffuse>0.1 0.3 0.8 1</diffuse>
+        </material>
+      </visual>
+      <collision name="chassis_collision">
+        <geometry><box><size>0.4 0.3 0.1</size></box></geometry>
+      </collision>
+
+      <!-- カメラ本体の見た目 -->
+      <visual name="camera_visual">
+        <pose>0.19 0 0.1 0 -0.3 0</pose>
+        <geometry><box><size>0.04 0.08 0.05</size></box></geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- 前方カメラ（Gazebo内の映像をAIに渡す）
+           少し上向き（pitch=-0.3rad）にして、近くの人の全身が映るようにする -->
+      <sensor name="front_camera" type="camera">
+        <pose>0.21 0 0.1 0 -0.3 0</pose>
+        <camera>
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>50</far>
+          </clip>
+        </camera>
+        <always_on>1</always_on>
+        <update_rate>15</update_rate>
+        <visualize>true</visualize>
+        <topic>/camera/image</topic>
+      </sensor>
+    </link>
+
+    <!-- 左車輪 -->
+    <link name="left_wheel">
+      <pose>0 0.18 0.08 -1.5707 0 0</pose>
+      <inertial>
+        <mass>0.5</mass>
+        <inertia>
+          <ixx>0.001</ixx><iyy>0.001</iyy><izz>0.0016</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+      </collision>
+    </link>
+
+    <!-- 右車輪 -->
+    <link name="right_wheel">
+      <pose>0 -0.18 0.08 -1.5707 0 0</pose>
+      <inertial>
+        <mass>0.5</mass>
+        <inertia>
+          <ixx>0.001</ixx><iyy>0.001</iyy><izz>0.0016</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+        </material>
+      </visual>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+      </collision>
+    </link>
+
+    <!-- 後方キャスター（摩擦なしの球） -->
+    <link name="caster">
+      <pose>-0.15 0 0.03 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <visual name="visual">
+        <geometry><sphere><radius>0.03</radius></sphere></geometry>
+      </visual>
+      <collision name="collision">
+        <geometry><sphere><radius>0.03</radius></sphere></geometry>
+        <surface>
+          <friction><ode><mu>0</mu><mu2>0</mu2></ode></friction>
+        </surface>
+      </collision>
+    </link>
+
+    <joint name="left_wheel_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>left_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="right_wheel_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>right_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="caster_joint" type="fixed">
+      <parent>chassis</parent>
+      <child>caster</child>
+    </joint>
+
+    <!-- 動力: 差動二輪ドライブ。/cmd_vel を受けて車輪を回す -->
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.36</wheel_separation>
+      <wheel_radius>0.08</wheel_radius>
+      <max_linear_acceleration>1.0</max_linear_acceleration>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <odom_publish_frequency>20</odom_publish_frequency>
+    </plugin>
+  </model>
+</sdf>
