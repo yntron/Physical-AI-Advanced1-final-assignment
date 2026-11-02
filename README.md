@@ -229,14 +229,23 @@ macOS（Apple Silicon）+ Docker（手順 1-B）で確認した。環境は次�
 
 確認できた動作：
 
-1. `auto_forward_speed:=0.3` で自動前進 → 高さ比が `stop_ratio`（0.65）を超えた時点で
-   `AI BRAKE ON`（記録された値は 0.67〜0.70）
-2. ブレーキ後は `/safety/stop` が `true`、`/cmd_vel` の `linear.x` が 0.0 になり、前進指令が入っても停止を維持
+1. 前進（0.3 m/s）→ 高さ比が `stop_ratio`（0.65）を超えた時点で `AI BRAKE ON`
+   ```
+   Person close (ratio=0.66) -> AI BRAKE ON
+   ```
+2. ブレーキ後は `/safety/stop` が `true`、`/cmd_vel` の `linear.x` が 0.0 になり、
+   前進指令を出し直しても停止を維持
+3. 後退して人から離れる → 高さ比が `release_ratio`（0.3）を下回った状態が続き、解除
+   ```
+   Path clear and operator responded -> AI BRAKE OFF
+   ```
+4. そのまま再接近 → 再び `AI BRAKE ON`（ratio=0.66）
+
+解除は「人が十分遠い」ことと「操作者が前進以外の指令を出した」ことの両方が必要なため、
+後退（`,` キー）はこの2つを同時に満たす。旋回でも同じ条件を満たすが、
+人が画面外に出て検出が途切れるため、動作を目で確認するには後退のほうが分かりやすい。
 
 `/detection/image` を `record_video` で MP4 に保存できることも確認した（640×480、15fps）。
-
-未確認：「旋回して人が視界から外れると約1秒後に解除される」という解除側の動作は、
-このコードのロジックとしては実装しているが、上記環境ではまだ測っていない。
 
 GUI を表示した場合、この環境では実時間比（RTF）が約 0.5 だった。
 撮影時は倍速にするか、`gui:=false` で軽くする。
